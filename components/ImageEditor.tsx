@@ -1,12 +1,42 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Paintbrush, Sparkles, Upload } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
+import { useDropzone } from 'react-dropzone';
+import { resolve } from 'path';
+import { rejects } from 'assert';
 
 const ImageEditor = () => {
   const [activeTab, setActiveTab] = useState('edit');
+
+  const [selectedImages, setSelectedImages] = useState<File[]>([]);
+  const [imagePreview, setImagesPreview] = useState<string[]>([]);
+
+  const onDrop = useCallback((acceptedFiles: File[]) => {
+    setSelectedImages(acceptedFiles);
+    const previewPromises = acceptedFiles.map((file) => {
+      return new Promise<string>((resolve, rejects) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result as string);
+        reader.readAsDataURL(file);
+      });
+    });
+    Promise.all(previewPromises).then((previews) => {
+      setImagesPreview(previews);
+    });
+  }, []);
+
+  const { getRootProps, getInputProps, isDragActive } = useDropzone({
+    accept: {
+      'image/*': ['.png', '.jpg', '.jpeg', '.gif', '.webp'],
+    },
+    multiple: true,
+    onDrop: onDrop,
+    maxFiles: 5,
+    maxSize: 10 * 1024 * 1024,
+  });
 
   return (
     <div className="max-w-6xl mx-auto space-y-6">
