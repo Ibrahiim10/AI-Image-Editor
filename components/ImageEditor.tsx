@@ -3,10 +3,13 @@
 import React, { useCallback, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import {
+  Copy,
+  Download,
   ImageIcon,
   Loader2,
   Paintbrush,
   Sparkles,
+  Trash2,
   Upload,
   Wand2,
 } from 'lucide-react';
@@ -17,6 +20,15 @@ import { Label } from './ui/label';
 import { Textarea } from './ui/textarea';
 import { Button } from './ui/button';
 import { Progress } from './ui/progress';
+import { Badge } from './ui/badge';
+
+interface EditResult {
+  url: string;
+  prompt: string;
+  timestamp: number;
+  imageCount?: number;
+  type: 'edit' | 'generate';
+}
 
 const ImageEditor = () => {
   const [activeTab, setActiveTab] = useState('edit');
@@ -26,6 +38,7 @@ const ImageEditor = () => {
   const [prompt, setPrompt] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
   const [progress, setProgress] = useState(0);
+  const [results, setResults] = useState<EditResult[]>([]);
 
   const onDrop = useCallback((acceptedFiles: File[]) => {
     setSelectedImages(acceptedFiles);
@@ -248,6 +261,112 @@ const ImageEditor = () => {
                         ? 'Generating result...'
                         : 'Almost done...'}
                 </p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Results */}
+        <Card className="flex flex-col max-h-screen">
+          <CardHeader className="flex flex-row items-center justify-between flex-shrink-0">
+            <CardTitle className="flex items-center gap-2">
+              <ImageIcon className="w-5 h-5" />
+              Results ({results.length})
+            </CardTitle>
+            {results.length > 0 && (
+              <Button
+                variant="outline"
+                size="sm"
+                //   onClick={clearResults}
+              >
+                <Trash2 className="w-4 h-4 mr-1" />
+                Clear
+              </Button>
+            )}
+          </CardHeader>
+          <CardContent className="flex-1 overflow-hidden">
+            {results.length === 0 ? (
+              <div className="text-center py-12 text-muted-foreground">
+                <ImageIcon className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                <p>No results yet</p>
+                <p className="text-sm">
+                  Upload images and process them to see results here
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-4 max-h-[600px] overflow-y-auto pr-2">
+                {results.map((result, index) => (
+                  <div key={index} className="border rounded-lg p-4 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <Badge variant="secondary">
+                        {result.type === 'generate' ? (
+                          <>
+                            <Sparkles className="w-3 h-3 mr-1" />
+                            Generated
+                          </>
+                        ) : (
+                          <>
+                            <Paintbrush className="w-3 h-3 mr-1" />
+                            {result.imageCount} Image
+                            {result.imageCount && result.imageCount > 1
+                              ? 's'
+                              : ''}{' '}
+                            Edited
+                          </>
+                        )}
+                      </Badge>
+                      <span className="text-xs text-muted-foreground">
+                        {new Date(result.timestamp).toLocaleTimeString()}
+                      </span>
+                    </div>
+
+                    {/* Image container with fixed aspect ratio and scroll */}
+                    <div className="relative w-full max-h-96 overflow-auto border rounded-lg bg-muted/20">
+                      <Image
+                        src={result.url}
+                        alt={`Result ${index + 1}`}
+                        width={400}
+                        height={400}
+                        className="w-full h-auto object-contain"
+                        style={{ minHeight: '200px' }}
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <p className="text-sm font-medium">Prompt:</p>
+                      <p className="text-xs text-muted-foreground bg-muted p-2 rounded">
+                        {result.prompt}
+                      </p>
+                    </div>
+
+                    {/* Action buttons - always visible */}
+                    <div className="flex gap-2 pt-2 border-t">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        // onClick={() =>
+                        //   handleDownload(
+                        //     result.url,
+                        //     `edited-image-${index + 1}.png`,
+                        //   )
+                        // }
+                        className="flex-1"
+                      >
+                        <Download className="w-3 h-3 mr-1" />
+                        Download
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        // onClick={() => copyToClipboard(result.url)}
+                        className="flex-1"
+                      >
+                        <Copy className="w-3 h-3 mr-1" />
+                        Copy URL
+                      </Button>
+                    </div>
+                  </div>
+                ))}
               </div>
             )}
           </CardContent>
