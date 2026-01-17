@@ -2,18 +2,30 @@
 
 import React, { useCallback, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
-import { ImageIcon, Paintbrush, Sparkles, Upload } from 'lucide-react';
+import {
+  ImageIcon,
+  Loader2,
+  Paintbrush,
+  Sparkles,
+  Upload,
+  Wand2,
+} from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import { useDropzone } from 'react-dropzone';
-import { resolve } from 'path';
-import { rejects } from 'assert';
 import Image from 'next/image';
+import { Label } from './ui/label';
+import { Textarea } from './ui/textarea';
+import { Button } from './ui/button';
+import { Progress } from './ui/progress';
 
 const ImageEditor = () => {
   const [activeTab, setActiveTab] = useState('edit');
 
   const [selectedImages, setSelectedImages] = useState<File[]>([]);
   const [imagePreview, setImagesPreview] = useState<string[]>([]);
+  const [prompt, setPrompt] = useState('');
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [progress, setProgress] = useState(0);
 
   const onDrop = useCallback((acceptedFiles: File[]) => {
     setSelectedImages(acceptedFiles);
@@ -66,6 +78,7 @@ const ImageEditor = () => {
                   className="flex items-center gap-2"
                 >
                   <Sparkles className="w-4 h-4" />
+                  Generate Image
                 </TabsTrigger>
               </TabsList>
               <TabsContent value="edit" className="space-y-6 mt-6">
@@ -131,10 +144,112 @@ const ImageEditor = () => {
                   </p>
                 </div>
               </TabsContent>
-              <TabsContent value="generate">
-                <h1>Generate Images</h1>
+              <TabsContent value="generate" className="space-y-6 mt-6">
+                {/* Generation preview */}
+                <div className="border-2 border-dashed rounded-lg p-8 text-center bg-gradient-to-br from primary/5 to-secondary/5">
+                  <div className="space-y-4">
+                    <Sparkles className="w-12 h-12 mx-auto text-primary" />
+                    <div>
+                      <p className="text-lg font-medium">AI Image Generation</p>
+                      <p className="text-sm text-muted-foreground">
+                        Describe what you want to create and AI will generate it
+                      </p>
+                    </div>
+                  </div>
+                </div>
+                {/* Model info for Generation */}
+                <div className="bg-muted/50 p-4 rounded-lg">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Sparkles className="w-4 h-4 text-primary" />
+                    <span className="font-medium">Google Gemini 2.5 Flash</span>
+                  </div>
+                  <p className="text-sm text-muted-foreground">
+                    Advanced AI model for generating high-quality, realistic
+                    images from text descriptions.
+                  </p>
+                </div>
               </TabsContent>
             </Tabs>
+
+            {/* prompt input */}
+            <div className="space-y-2">
+              <Label htmlFor="prompt">
+                {activeTab === 'edit' ? 'Editing Prompt' : 'Generation Prompt'}
+              </Label>
+
+              <Textarea
+                id="prompt"
+                placeholder={
+                  activeTab === 'edit'
+                    ? 'Describe what you want to do with the image...'
+                    : 'Describe the image you want to generate...'
+                }
+                value={prompt}
+                onChange={(e) => setPrompt(e.target.value)}
+                rows={3}
+                className="resize-none"
+              />
+
+              {activeTab === 'generate' && (
+                <p className="text-sm text-muted-foreground">
+                  Example: "a tiger fighting with a lion in a city, realistic
+                  photo 8k"
+                </p>
+              )}
+            </div>
+
+            {/* Process Button */}
+            <Button
+              //   onClick={handleProcessImage}
+              disabled={
+                (activeTab === 'edit' &&
+                  (selectedImages.length === 0 || !prompt.trim())) ||
+                (activeTab === 'generate' && !prompt.trim()) ||
+                isProcessing
+              }
+              className="w-full"
+              size="lg"
+            >
+              {isProcessing ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Processing...
+                </>
+              ) : (
+                <>
+                  {activeTab === 'edit' ? (
+                    <>
+                      <Wand2 className="w-4 h-4 mr-2" />
+                      Edit{' '}
+                      {selectedImages.length > 0
+                        ? `${selectedImages.length} Image(s)`
+                        : 'Images'}
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles className="w-4 h-4 mr-2" />
+                      Generate Image
+                    </>
+                  )}
+                </>
+              )}
+            </Button>
+
+            {/* Progress Bar */}
+            {isProcessing && (
+              <div className="space-y-2">
+                <Progress value={progress} className="w-full" />
+                <p className="text-sm text-muted-foreground text-center">
+                  {progress < 30
+                    ? 'Uploading image...'
+                    : progress < 60
+                      ? 'Processing with nano-banana...'
+                      : progress < 90
+                        ? 'Generating result...'
+                        : 'Almost done...'}
+                </p>
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>
