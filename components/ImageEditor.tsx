@@ -65,6 +65,15 @@ const ImageEditor = () => {
     maxSize: 10 * 1024 * 1024,
   });
 
+  const convertFileToBase64 = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = (error) => reject(error);
+    });
+  };
+
   const handleProcessingImage = async () => {
     if (
       activeTab === 'edit' &&
@@ -99,6 +108,11 @@ const ImageEditor = () => {
 
       if (activeTab === 'edit') {
         // configure request body for edit
+        const base64Images = await Promise.all(
+          selectedImages.map((file) => convertFileToBase64(file)),
+        );
+        requestBody.image = base64Images;
+        toast.info('Processing images...');
       } else {
         // configure request body for generate
         apiEndpoint = '/api/generate';
@@ -221,7 +235,7 @@ const ImageEditor = () => {
                               alt={`Preview ${index + 1}`}
                               width={150}
                               height={150}
-                              className="w-full h-32 object cover rounded-lg border"
+                              className="w-full h-96 object cover rounded-lg border"
                             />
                             <div className="absolute top-1 right-1 bg-black/70 text-white text-sm px-1.5 py-0.5 rounded">
                               {index + 1}
