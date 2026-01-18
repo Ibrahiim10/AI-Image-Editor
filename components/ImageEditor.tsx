@@ -21,6 +21,7 @@ import { Textarea } from './ui/textarea';
 import { Button } from './ui/button';
 import { Progress } from './ui/progress';
 import { Badge } from './ui/badge';
+import { toast } from 'sonner';
 
 interface EditResult {
   url: string;
@@ -63,6 +64,69 @@ const ImageEditor = () => {
     maxFiles: 5,
     maxSize: 10 * 1024 * 1024,
   });
+
+  const handleProcessingImage = async () => {
+    if (
+      activeTab === 'edit' &&
+      (selectedImages.length === 0 || !prompt.trim())
+    ) {
+      toast.error('Please upload at least one image and enter a prompt');
+      return;
+    }
+
+    if (activeTab === 'generate' && !prompt.trim()) {
+      toast.error('Please enter a prompt for image generation');
+      return;
+    }
+
+    setIsProcessing(true);
+    setProgress(0);
+
+    try {
+      let requestBody: any = { prompt: prompt.trim() };
+      let apiEndpoint = '/api/image-edit';
+
+      if (activeTab === 'edit') {
+        // configure request body for edit
+      } else {
+        // configure request body for generate
+        apiEndpoint = '/api/generate';
+
+        toast.info('Generating image...');
+      }
+
+      const response = await fetch(apiEndpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(requestBody),
+      });
+
+      const data = await response.json();
+
+      if (data.success && data.output) {
+        const newResult: EditResult = {
+          url: data.output,
+          prompt: prompt.trim(),
+          timestamp: Date.now(),
+          type: activeTab === 'edit' ? 'edit' : 'generate',
+        };
+
+        setResults((prev) => [newResult, ...prev]);
+        setProgress(100);
+        toast.success(
+          `Image ${activeTab === 'edit' ? 'edited' : 'generated'} successfully`,
+        );
+      } else {
+        throw new Error(data.error || 'Failed to process image');
+      }
+    } catch (error) {
+      toast.error('Failed to process image');
+      setIsProcessing(false);
+      setProgress(0);
+    }
+  };
 
   return (
     <div className="max-w-6xl mx-auto space-y-6">
@@ -213,7 +277,7 @@ const ImageEditor = () => {
 
             {/* Process Button */}
             <Button
-              //   onClick={handleProcessImage}
+              onClick={handleProcessingImage}
               disabled={
                 (activeTab === 'edit' &&
                   (selectedImages.length === 0 || !prompt.trim())) ||
