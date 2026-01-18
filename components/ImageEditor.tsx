@@ -82,6 +82,17 @@ const ImageEditor = () => {
     setIsProcessing(true);
     setProgress(0);
 
+    // simulate progress
+    const progressInterval = setInterval(() => {
+      setProgress((prev) => {
+        if (prev >= 90) {
+          clearInterval(progressInterval);
+          return 90;
+        }
+        return prev + 10;
+      });
+    }, 1000);
+
     try {
       let requestBody: any = { prompt: prompt.trim() };
       let apiEndpoint = '/api/image-edit';
@@ -125,7 +136,38 @@ const ImageEditor = () => {
       toast.error('Failed to process image');
       setIsProcessing(false);
       setProgress(0);
+    } finally {
+      setIsProcessing(false);
+      setTimeout(() => setProgress(0), 2000);
     }
+  };
+
+  const handleDownload = async (url: string, filename: string) => {
+    try {
+      const response = await fetch(url);
+      const blob = await response.blob();
+      const downloadUrl = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = downloadUrl;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(downloadUrl);
+      toast.success('Image downloaded successfully!');
+    } catch (error) {
+      toast.error('Failed to download image');
+    }
+  };
+
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text);
+    toast.success('Copied to clipboard!');
+  };
+
+  const clearResults = () => {
+    setResults([]);
+    toast.info('Results cleared');
   };
 
   return (
@@ -331,18 +373,14 @@ const ImageEditor = () => {
         </Card>
 
         {/* Results */}
-        <Card className="flex flex-col max-h-screen">
-          <CardHeader className="flex flex-row items-center justify-between flex-shrink-0">
+        <Card>
+          <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <ImageIcon className="w-5 h-5" />
               Results ({results.length})
             </CardTitle>
             {results.length > 0 && (
-              <Button
-                variant="outline"
-                size="sm"
-                //   onClick={clearResults}
-              >
+              <Button variant="outline" size="sm" onClick={clearResults}>
                 <Trash2 className="w-4 h-4 mr-1" />
                 Clear
               </Button>
@@ -408,12 +446,12 @@ const ImageEditor = () => {
                       <Button
                         size="sm"
                         variant="outline"
-                        // onClick={() =>
-                        //   handleDownload(
-                        //     result.url,
-                        //     `edited-image-${index + 1}.png`,
-                        //   )
-                        // }
+                        onClick={() =>
+                          handleDownload(
+                            result.url,
+                            `edited-image-${index + 1}.png`,
+                          )
+                        }
                         className="flex-1"
                       >
                         <Download className="w-3 h-3 mr-1" />
@@ -422,7 +460,7 @@ const ImageEditor = () => {
                       <Button
                         size="sm"
                         variant="outline"
-                        // onClick={() => copyToClipboard(result.url)}
+                        onClick={() => copyToClipboard(result.url)}
                         className="flex-1"
                       >
                         <Copy className="w-3 h-3 mr-1" />
